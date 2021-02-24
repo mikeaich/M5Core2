@@ -500,6 +500,105 @@ void TFT_eSprite::pushSprite(int32_t x, int32_t y, uint16_t transp)
 
 
 /***************************************************************************************
+** Function name:           pushSprite
+** Description:             Push a cropped sprite to the TFT at tx, ty
+***************************************************************************************/
+bool TFT_eSprite::pushSprite(int32_t tx, int32_t ty, int32_t sx, int32_t sy, int32_t sw, int32_t sh)
+{
+  if (!_created) return false;
+
+  // Perform window boundary checks and crop if needed
+  setWindow(sx, sy, sx + sw - 1, sy + sh - 1);
+
+  /* These global variables are now populated for the sprite
+  _xs = x start coordinate
+  _ys = y start coordinate
+  _xe = x end coordinate (inclusive)
+  _ye = y end coordinate (inclusive)
+  */
+
+  // Calculate new sprite window bounding box width and height
+  sw = _xe - _xs + 1;
+  sh = _ye - _ys + 1;
+
+  if (_ys >= _iheight) return false;
+
+  if (_bpp == 16)
+  {
+    bool oldSwapBytes = _tft->getSwapBytes();
+    _tft->setSwapBytes(false);
+
+    // Check if a faster block copy to screen is possible
+    if ( sx == 0 && sw == _dwidth)
+      _tft->pushImage(tx, ty, sw, sh, _img + _iwidth * _ys );
+    else // Render line by line
+      while (sh--)
+        _tft->pushImage(tx, ty++, sw, 1, _img + _xs + _iwidth * _ys++ );
+
+    _tft->setSwapBytes(oldSwapBytes);
+  }
+  else if (_bpp == 8)
+  {
+    // Check if a faster block copy to screen is possible
+    if ( sx == 0 && sw == _dwidth)
+      _tft->pushImage(tx, ty, sw, sh, _img8 + _iwidth * _ys, (bool)true );
+    else // Render line by line
+    while (sh--)
+      _tft->pushImage(tx, ty++, sw, 1, _img8 + _xs + _iwidth * _ys++, (bool)true );
+  }
+  else if (_bpp == 4)
+  {
+  #if 0
+    // Check if a faster block copy to screen is possible
+    if ( sx == 0 && sw == _dwidth)
+      _tft->pushImage(tx, ty, sw, sh, _img4 + (_iwidth>>1) * _ys, false, _colorMap );
+    else // Render line by line
+    {
+      int32_t ds = _xs&1; // Odd x start pixel
+
+      int32_t de = 0;     // Odd x end pixel
+      if ((sw > ds) && (_xe&1)) de = 1;
+
+      uint32_t dm = 0;     // Midsection pixel count
+      if (sw > (ds+de)) dm = sw - ds - de;
+      sw--;
+
+      uint32_t yp = (_xs + ds + _iwidth * _ys)>>1;
+      _tft->startWrite();
+      while (sh--)
+      {
+        if (ds) _tft->drawPixel(tx, ty, readPixel(_xs, _ys) );
+        if (dm) _tft->pushImage(tx + ds, ty, dm, 1, _img4 + yp, false, _colorMap );
+        if (de) _tft->drawPixel(tx + sw, ty, readPixel(_xe, _ys) );
+        _ys++;
+        ty++;
+        yp += (_iwidth>>1);
+      }
+      _tft->endWrite();
+    }
+  #endif
+  }
+  else // 1bpp
+  {
+    // Check if a faster block copy to screen is possible
+    if ( sx == 0 && sw == _dwidth)
+      _tft->pushImage(tx, ty, sw, sh, _img8 + (_bitwidth>>3) * _ys, (bool)false );
+    else // Render line by line
+    {
+      _tft->startWrite();
+      while (sh--)
+      {
+        _tft->pushImage(tx, ty++, sw, 1, _img8 + (_bitwidth>>3) * _ys, (bool)false );
+      }
+      _tft->endWrite();
+    }
+  }
+
+  return true;
+}
+
+
+/***************************************************************************************
 ** Function name:           readPixel
 ** Description:             Read 565 colour of a pixel at defined coordinates
 *************************************************************************************x*/

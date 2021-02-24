@@ -28,6 +28,8 @@ class TFT_eSprite : public TFT_eSPI {
 
   TFT_eSprite(TFT_eSPI *tft);
 
+  TFT_eSPI* tft() const { return _tft; }
+
            // Create a sprite of width x height pixels, return a pointer to the RAM area
            // Sketch can cast returned value to (uint16_t*) for 16 bit depth if needed
            // RAM required is 1 byte per pixel for 8 bit colour depth, 2 bytes for 16 bit
@@ -115,6 +117,7 @@ class TFT_eSprite : public TFT_eSPI {
            // Optionally a "transparent" colour can be defined, pixels of that colour will not be rendered
   void     pushSprite(int32_t x, int32_t y);
   void     pushSprite(int32_t x, int32_t y, uint16_t transparent);
+  bool     pushSprite(int32_t tx, int32_t ty, int32_t sx, int32_t sy, int32_t sw, int32_t sh);
 
   int16_t  drawChar(uint16_t uniCode, int32_t x, int32_t y, uint8_t font),
            drawChar(uint16_t uniCode, int32_t x, int32_t y);
